@@ -87,6 +87,7 @@ class OpenRGBLight(LightEntity):
         self._hass = hass
         self._ha_dev_id = ha_dev_id
         self._entry_id = entry_id
+        self._attr_supported_color_modes = set(ColorMode.RGB)
 
     async def async_added_to_hass(self):
         """Call when entity is added to hass."""
@@ -148,6 +149,10 @@ class OpenRGBLight(LightEntity):
     def hs_color(self):
         """Return the hue and saturation color value [float, float]."""
         return self._hs_value
+
+    @property
+    def color_mode(self):
+        return ColorMode.RGB
 
     @property
     def assumed_state(self):
@@ -250,7 +255,6 @@ class OpenRGBDevice(OpenRGBLight):
         self._callbacks = []
         self._unique_id = unique_id
         self._attr_unique_id = f'{ha_dev_unique_id}_{unique_id}'
-        self._attr_color_mode = ColorMode.RGB
         self._name = self._retrieve_current_name()
 
         self._brightness = 255.0
@@ -295,11 +299,6 @@ class OpenRGBDevice(OpenRGBLight):
     def supported_features(self):
         """Return the supported features for this device."""
         return SUPPORT_EFFECT | SUPPORT_COLOR | SUPPORT_BRIGHTNESS
-
-    @property
-    def supported_color_modes(self):
-        """Return supported color modes."""
-        return set(ColorMode.RGB)
 
     def _device_turned_on(self, **kwargs):
         if ATTR_EFFECT in kwargs:
