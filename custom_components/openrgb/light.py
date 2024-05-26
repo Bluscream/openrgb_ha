@@ -87,7 +87,7 @@ class OpenRGBLight(LightEntity):
         self._hass = hass
         self._ha_dev_id = ha_dev_id
         self._entry_id = entry_id
-        self._attr_supported_color_modes = set(ColorMode.RGB)
+        self._attr_supported_color_modes = {ColorMode.RGB}
 
     async def async_added_to_hass(self):
         """Call when entity is added to hass."""
