@@ -197,6 +197,7 @@ class OpenRGBLight(LightEntity):
 
         # Instead of using the libraries off() method, setting the brightness
         # preserves the color for when it gets turned on again.
+        self._attr_rgb_color = (0,0,0)
         self._brightness = 0.0
 
         self._device_turned_off(**kwargs)
