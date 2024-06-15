@@ -8,6 +8,7 @@ from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_EFFECT,
     ATTR_HS_COLOR,
+    ATTR_RGB_COLOR,
     DOMAIN as SENSOR_DOMAIN,
     SUPPORT_BRIGHTNESS,
     SUPPORT_COLOR,
@@ -145,10 +146,10 @@ class OpenRGBLight(LightEntity):
         """Return the brightness of this light between 0..255."""
         return self._brightness
 
-    @property
-    def hs_color(self):
-        """Return the hue and saturation color value [float, float]."""
-        return self._hs_value
+    # @property
+    # def hs_color(self):
+    #     """Return the hue and saturation color value [float, float]."""
+    #     return self._hs_value
 
     @property
     def color_mode(self):
@@ -163,15 +164,19 @@ class OpenRGBLight(LightEntity):
 
     def turn_on(self, **kwargs):
         """Turn the device on, and set defaults."""
-        if ATTR_HS_COLOR in kwargs:
-            self._hs_value = kwargs.get(ATTR_HS_COLOR)
+        # if ATTR_HS_COLOR in kwargs:
+        #     self._hs_value = kwargs.get(ATTR_HS_COLOR)
+        if ATTR_RGB_COLOR in kwargs:
+            rgb = kwargs[ATTR_RGB_COLOR]
+            self._attr_rgb_color = rgb
 
         if ATTR_BRIGHTNESS in kwargs:
             self._brightness = kwargs.get(ATTR_BRIGHTNESS)
 
         # Restore the state if the light just gets turned on
         if not kwargs:
-            self._hs_value = self._prev_hs_value
+            # self._hs_value = self._prev_hs_value
+            self._attr_rgb_color = self._prev_rgb_value
             self._brightness = self._prev_brightness
 
         self._device_turned_on(**kwargs)
@@ -187,7 +192,8 @@ class OpenRGBLight(LightEntity):
             
         # preserve the state
         self._prev_brightness = self._brightness
-        self._prev_hs_value = self._hs_value
+        # self._prev_hs_value = self._hs_value
+        self._prev_rgb_value = self._attr_rgb_color
 
         # Instead of using the libraries off() method, setting the brightness
         # preserves the color for when it gets turned on again.
@@ -207,13 +213,14 @@ class OpenRGBLight(LightEntity):
     def _retrieve_current_name(self) -> str:
         raise NotImplementedError
 
-    def _retrieve_active_color(self) -> tuple[float, float]:
+    def _retrieve_active_color(self) -> tuple[int, int, int]:
         raise NotImplementedError
 
     def update(self):
         """Single function to update the devices state."""
         self._name = self._retrieve_current_name()
-        self._hs_value = self._retrieve_active_color()
+        # self._hs_value = self._retrieve_active_color()
+        self._attr_rgb_color = self._retrieve_active_color()
 
         # For many devices, if OpenRGB hasn't set it, the initial state is
         # unknown as they don't otherwise provide a way of reading it.
@@ -221,7 +228,7 @@ class OpenRGBLight(LightEntity):
         # So, we have to assume if we get a color of (0.0, 0.0) and we
         # haven't changed the state ourselves, that this is an assumed state.
         if self._assumed_state:
-            if self._hs_value != (0.0, 0.0):
+            if self._attr_rgb_color != (0, 0, 0):
                 self._assumed_state = False
 
     def _set_color(self):
@@ -260,8 +267,8 @@ class OpenRGBDevice(OpenRGBLight):
         self._brightness = 255.0
         self._prev_brightness = 255.0
 
-        self._hs_value = (0.0, 0.0)
-        self._prev_hs_value = (0.0, 0.0)
+        # self._hs_value = (0.0, 0.0)
+        # self._prev_hs_value = (0.0, 0.0)
 
         self._effect = ""
         self._prev_effect = self._light.modes[self._light.active_mode].name
@@ -314,8 +321,8 @@ class OpenRGBDevice(OpenRGBLight):
     def _retrieve_current_name(self) -> str:
         return f"{self._light.name} {self._light.device_id}"
 
-    def _retrieve_active_color(self) -> tuple[float, float]:
-        return color_util.color_RGB_to_hs(*orgb_tuple(self._light.colors[0]))
+    def _retrieve_active_color(self) -> tuple[int, int, int]:
+        return orgb_tuple(self._light.colors[0])
 
     def update(self):
         super().update()
@@ -333,11 +340,12 @@ class OpenRGBDevice(OpenRGBLight):
 
     def _set_color(self):
         """Set the devices color using the library."""
-        color = color_util.color_hsv_to_RGB(
-            *(self._hs_value), 100.0 * (self._brightness / 255.0)
-        )
+        # color = color_util.color_hsv_to_RGB(
+        #     *(self._hs_value), 100.0 * (self._brightness / 255.0)
+        # )
         try:
-            self._light.set_color(RGBUtils.RGBColor(*color))
+            # self._light.set_color(RGBUtils.RGBColor(*color))
+            self._light.set_color(RGBUtils.RGBColor(*self._attr_rgb_color))
             self._assumed_state = False
         except ConnectionError:
             self.hass.data[DOMAIN][self._entry_id]["connection_failed"]()
